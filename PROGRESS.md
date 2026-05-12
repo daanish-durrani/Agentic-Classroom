@@ -4,12 +4,12 @@
 
 ## Current status
 
-- **Active phase**: Phase 0 — Infrastructure foundation (**all amendments done**, ready for merge)
-- **Current sub-task**: All 4 amendments completed this session: AccessCodeGuard deleted, `enrollments` table added, `preferred_language` column added, `users.role` sme documented. Schema pushed to Neon.
-- **Next action**: Merge `phase-0-infrastructure` PR → then execute first slice (DAA-16).
+- **Active phase**: Phase 0 — Infrastructure foundation (**MERGED** ✅, DAA-5 → Done)
+- **Current sub-task**: Phase 0 complete. Ready for first slice execution.
+- **Next action**: Start next session → query Linear DAG → pick first unblocked slice (likely DAA-16).
 - **Blockers**: none.
 - **Last completed slice**: none (first execution pending)
-- **Files modified (cumulative on branch)**:
+- **Files modified (cumulative, merged to main)**:
   - `middleware.ts` — Clerk-only middleware; legacy ACCESS_CODE HMAC removed (Session 2, amended Session 4)
   - `app/layout.tsx` — ClerkProvider wrapper, PWA meta tags; AccessCodeGuard fallback removed (Session 2, amended Session 4)
   - `app/sign-in/[[...sign-in]]/page.tsx` — new Clerk sign-in page (Session 2)
@@ -27,12 +27,30 @@
   - `package.json` — added @clerk/nextjs, drizzle-orm, @neondatabase/serverless, drizzle-kit, @aws-sdk/client-s3, svix, typecheck script (Session 2 + 3)
   - `PLAN.md` — §0 locked decisions, §0.6 schema, §0.8 mobile shell, §0.9 roles (Session 2 + 3)
   - `PROGRESS.md` — session logs (Session 2 + 3 + 4)
-  - `AGENTS.md` — AFK protocol, dynamic DAG, change management, Linear sync rule, incremental saves (Session 2 + 3 + 4)
+  - `AGENTS.md` — AFK protocol, dynamic DAG, change management, Linear sync rule, incremental saves, QA checklist rule (Session 2 + 3 + 4)
   - `CLAUDE.md` — mirrors AGENTS.md (Session 2 + 3 + 4)
   - `.cursor/rules/mobile-app-shell.mdc` — new agent rule (Session 2)
   - **Deleted (Session 4)**: `components/access-code-guard.tsx`, `components/access-code-modal.tsx`, `app/api/access-code/` (status + verify routes)
 
 ## Session log
+
+### 2026-05-12 — Session 4 (Phase 0 amendments + workflow hardening)
+
+**Phase**: Phase 0 — Infrastructure foundation
+
+**What was completed**:
+
+1. **AccessCodeGuard removal**: Deleted `access-code-guard.tsx`, `access-code-modal.tsx`, `app/api/access-code/` (status + verify routes). Cleaned `layout.tsx` and `middleware.ts` to be Clerk-only.
+2. **Schema amendments**: Added `enrollments` table, `preferred_language` column to student_profiles, documented sme role via schema comment. Pushed to Neon.
+3. **Agent workflow hardening** — four gaps fixed in AGENTS.md + CLAUDE.md:
+   - Cumulative PROGRESS.md: "Overwrite means update, not erase" — file lists must stay cumulative across sessions.
+   - Linear status transitions: explicitly must move status when work is fully complete.
+   - Linear comments: changed "description or comment" to "description AND comment" for audit trail.
+   - QA checklist: completion comments must include a `- [ ]` checklist for the reviewer.
+4. **PR merged**: `phase-0-infrastructure` → `main`. DAA-5 moved to Done in Linear.
+5. **QA passed**: Clerk sign-in loads, access-code routes gone, Neon tables verified.
+
+**Tech debt observed**: Line ending warnings (LF vs CRLF) on Windows — not blocking, cosmetic only.
 
 ### 2026-05-12 — Session 3 (product interview)
 
