@@ -65,6 +65,11 @@ function buildMockDb() {
         })),
       })),
     })),
+
+    // db.transaction(cb) — call cb with the same mock as the tx handle
+    transaction: vi.fn().mockImplementation(async (cb: (tx: typeof mockDb) => Promise<unknown>) => {
+      return cb(mockDb);
+    }),
   };
 
   return mockDb;
@@ -77,46 +82,11 @@ vi.mock('@/lib/server/db/index', () => ({
   getDb: () => mockDb,
 }));
 
-// Mock the schema — re-create minimal table definitions for the mock
+// Pass-through: use the real schema objects so column refs stay in sync.
+// See lib/server/db/schema.ts for the canonical definitions.
 vi.mock('@/lib/server/db/schema', async () => {
-  const { pgTable, uuid, varchar, text, boolean, timestamp, integer, jsonb, uniqueIndex } = await import('drizzle-orm/pg-core');
-  const { sql } = await import('drizzle-orm');
-
-  const users = pgTable(
-    'users',
-    {
-      id: uuid('id').primaryKey().defaultRandom(),
-      authProvider: varchar('auth_provider', { length: 32 }).notNull().default('clerk'),
-      authProviderId: varchar('auth_provider_id', { length: 255 }).notNull(),
-      email: varchar('email', { length: 320 }),
-      displayName: varchar('display_name', { length: 255 }),
-      avatarUrl: text('avatar_url'),
-      role: varchar('role', { length: 32 }).notNull().default('student'),
-      onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
-      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-    },
-    (table) => [
-      uniqueIndex('users_auth_provider_id_idx').on(table.authProvider, table.authProviderId),
-    ],
-  );
-
-  const studentProfiles = pgTable(
-    'student_profiles',
-    {
-      id: uuid('id').primaryKey().defaultRandom(),
-      userId: uuid('user_id').notNull().unique(),
-      programName: varchar('program_name', { length: 255 }),
-      year: integer('year'),
-      currentSemesters: jsonb('current_semesters').default(sql`'[]'::jsonb`),
-      rollNumber: varchar('roll_number', { length: 100 }).unique(),
-      preferredLanguage: varchar('preferred_language', { length: 32 }).notNull().default('en'),
-      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-    },
-  );
-
-  return { users, studentProfiles };
+  const real = await vi.importActual<typeof import('@/lib/server/db/schema')>('@/lib/server/db/schema');
+  return { users: real.users, studentProfiles: real.studentProfiles };
 });
 
 // Import after mocks are set up

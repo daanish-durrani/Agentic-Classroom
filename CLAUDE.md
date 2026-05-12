@@ -18,6 +18,7 @@ This repository is a vibe‑coded project with a structured human + AI workflow.
 - **No drive‑by refactors.** Note unrelated issues under "Tech debt observed" in the session log.
 - **No `.env.local`, `node_modules`, or `data/classrooms/` commits.**
 - **One PR per phase.** Branch name `phase-N-<slug>`. Include a co‑author line in commits: `Co-Authored-By: Claude <noreply@anthropic.com>`.
+- **Never run `git add`, `git commit`, or `git push`.** The human reviews all changes and commits manually. This applies in both interactive and AFK modes.
 - **Always end a session by updating `PROGRESS.md`**: overwrite the "Current status" section, append a new "Session log" entry. See `WORKFLOW.md` for required fields.
   - **Save incrementally, not just at the end.** After each meaningful milestone, update `PROGRESS.md` immediately. In long sessions, context degrades — treat it like a save point the next session can trust.
   - **"Overwrite" means update, not erase.** Preserve cumulative context from prior sessions. File lists must stay cumulative — never drop entries from earlier sessions.

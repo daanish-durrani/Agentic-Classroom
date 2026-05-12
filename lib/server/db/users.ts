@@ -49,31 +49,35 @@ export async function getOrCreateUser(data: {
 }): Promise<InternalUser> {
   const db = getDb();
 
-  const [result] = await db
-    .insert(users)
-    .values({
-      authProvider: data.authProvider,
-      authProviderId: data.authProviderId,
-      email: data.email,
-      displayName: data.displayName,
-      avatarUrl: data.avatarUrl,
-    })
-    .onConflictDoUpdate({
-      target: [users.authProvider, users.authProviderId],
-      set: {
+  // Atomic: both inserts share a transaction so a profile-insert failure
+  // rolls back the user row, preventing orphaned records.
+  return await db.transaction(async (tx) => {
+    const [result] = await tx
+      .insert(users)
+      .values({
+        authProvider: data.authProvider,
+        authProviderId: data.authProviderId,
         email: data.email,
         displayName: data.displayName,
         avatarUrl: data.avatarUrl,
-      },
-    })
-    .returning();
+      })
+      .onConflictDoUpdate({
+        target: [users.authProvider, users.authProviderId],
+        set: {
+          email: data.email,
+          displayName: data.displayName,
+          avatarUrl: data.avatarUrl,
+        },
+      })
+      .returning();
 
-  // Ensure a student_profiles row exists for this user.
-  // ON CONFLICT DO NOTHING: safe for webhook retries and concurrent calls.
-  await db
-    .insert(studentProfiles)
-    .values({ userId: result.id })
-    .onConflictDoNothing({ target: studentProfiles.userId });
+    // Ensure a student_profiles row exists for this user.
+    // ON CONFLICT DO NOTHING: safe for webhook retries and concurrent calls.
+    await tx
+      .insert(studentProfiles)
+      .values({ userId: result.id })
+      .onConflictDoNothing({ target: studentProfiles.userId });
 
-  return result;
+    return result;
+  });
 }

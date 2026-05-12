@@ -64,6 +64,7 @@ If during implementation an assumption in `PLAN.md` turns out to be wrong, **do 
 
 ## Commit hygiene
 
+- **Agents must never run `git add`, `git commit`, or `git push`.** The human reviews all changes and commits manually. Agents write code and update docs — the human controls version history.
 - Commits inside a phase should be small and reversible. Conventional prefix: `phase-N: <verb> <thing>`.
 - Don't commit `node_modules`, generated `data/classrooms/`, audio blobs, or `.env.local`.
 - Include a co‑author line for the AI that made the change, e.g. `Co-Authored-By: Oz <oz-agent@warp.dev>` for Warp/Oz, `Co-Authored-By: Claude <noreply@anthropic.com>` for Claude Code, etc.
