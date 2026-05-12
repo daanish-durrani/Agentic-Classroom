@@ -18,7 +18,8 @@ This repository is a vibe‑coded project with a structured human + AI workflow.
 - **One PR per phase.** Branch name `phase-N-<slug>`.
 - **Always end a session by updating `PROGRESS.md`**: overwrite the "Current status" section, append a new "Session log" entry. See `WORKFLOW.md` for required fields.
   - **Save incrementally, not just at the end.** After each meaningful milestone (schema push, code change, doc update), update `PROGRESS.md` immediately. In long sessions, context degrades — if you only write at the end, you risk documenting work inaccurately. Treat `PROGRESS.md` like a save point: the next session must be able to trust it completely.
-- **Always keep Linear in sync.** After completing any work — slices, infra, doc changes, schema pushes, anything — update the relevant Linear issue (description or comment) and any affected Linear documents (Architecture, Schema, Roles). If you changed it in the repo, reflect it in Linear.
+  - **"Overwrite" means update, not erase.** When rewriting "Current status", preserve cumulative context from prior sessions. File lists must stay cumulative (add new entries, annotate amended ones with session numbers). Never drop entries from earlier sessions — the next agent needs the full picture of the branch.
+- **Always keep Linear in sync.** After completing any work — slices, infra, doc changes, schema pushes, anything — update the relevant Linear issue (description **and** comment), move its **status** if the work is fully complete (e.g. In Progress → Needs QA → Done), and update any affected Linear documents (Architecture, Schema, Roles). If you changed it in the repo, reflect it in Linear.
 
 ## Project context (short)
 
@@ -72,6 +73,7 @@ When running autonomously (AFK / night-shift mode), follow this loop **one slice
     - **What was tested** — e.g. "Tested that signing up creates the right records, and that fake/broken requests are rejected"
     - **Result** — did all checks pass? (`typecheck ✅`, `tests ✅`, `build ✅`)
     - **Anything the reviewer should know** — gotchas, decisions made, things that felt off
+    - **QA checklist** — a markdown checklist (`- [ ]`) of specific steps the reviewer should follow to verify the work. Tailor it to the slice (e.g. "Sign up with a test account and confirm a user row appears in the database"). Keep it concrete and actionable — no vague items like "verify it works."
 11. Move the issue → **Needs QA** in Linear.
 12. Update `PROGRESS.md` with a session log entry.
 

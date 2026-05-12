@@ -20,7 +20,8 @@ This repository is a vibe‑coded project with a structured human + AI workflow.
 - **One PR per phase.** Branch name `phase-N-<slug>`. Include a co‑author line in commits: `Co-Authored-By: Claude <noreply@anthropic.com>`.
 - **Always end a session by updating `PROGRESS.md`**: overwrite the "Current status" section, append a new "Session log" entry. See `WORKFLOW.md` for required fields.
   - **Save incrementally, not just at the end.** After each meaningful milestone, update `PROGRESS.md` immediately. In long sessions, context degrades — treat it like a save point the next session can trust.
-- **Always keep Linear in sync.** After any work, update the relevant Linear issue and any affected Linear documents. If you changed it in the repo, reflect it in Linear.
+  - **"Overwrite" means update, not erase.** Preserve cumulative context from prior sessions. File lists must stay cumulative — never drop entries from earlier sessions.
+- **Always keep Linear in sync.** After any work, update the relevant Linear issue (description **and** comment, plus **status** if fully complete) and any affected Linear documents. If you changed it in the repo, reflect it in Linear.
 
 ## Project context (short)
 
@@ -50,7 +51,7 @@ When running autonomously (AFK / night-shift mode), follow this loop **one slice
 7. Run the feedback loop: `pnpm typecheck && pnpm test && pnpm lint`
 8. Stop when **ALL** acceptance criteria from the Linear issue are met.
 9. Run `pnpm build` to confirm no regressions.
-10. **Post a completion comment** on the Linear issue. Write for a non-technical reader — plain English, no jargon. Include: what was done, what was tested, pass/fail results, and anything the reviewer should know.
+10. **Post a completion comment** on the Linear issue. Write for a non-technical reader — plain English, no jargon. Include: what was done, what was tested, pass/fail results, anything the reviewer should know, and a **QA checklist** (`- [ ]`) of concrete steps for the reviewer to verify the work.
 11. Move the issue → **Needs QA** in Linear.
 12. Update `PROGRESS.md` with a session log entry.
 

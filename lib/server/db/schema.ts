@@ -38,6 +38,7 @@ export const users = pgTable(
     email: varchar('email', { length: 320 }),
     displayName: varchar('display_name', { length: 255 }),
     avatarUrl: text('avatar_url'),
+    /** 'student' | 'sme' | 'admin' — enforced at app level, not DB enum */
     role: varchar('role', { length: 32 }).notNull().default('student'),
     onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -157,6 +158,8 @@ export const studentProfiles = pgTable(
     currentSemesters: jsonb('current_semesters').default(sql`'[]'::jsonb`),
     /** Unique roll number for university partnerships */
     rollNumber: varchar('roll_number', { length: 100 }).unique(),
+    /** Student picks during onboarding: 'en' | 'hi' | 'hinglish' */
+    preferredLanguage: varchar('preferred_language', { length: 32 }).notNull().default('en'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
@@ -194,6 +197,28 @@ export const studentProgress = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// enrollments — Admin-managed roll number → semester access
+// ---------------------------------------------------------------------------
+
+export const enrollments = pgTable(
+  'enrollments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    rollNumber: varchar('roll_number', { length: 100 }).notNull(),
+    semesterId: uuid('semester_id')
+      .notNull()
+      .references(() => semesters.id, { onDelete: 'cascade' }),
+    /** Which admin granted access */
+    grantedBy: uuid('granted_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('enrollments_roll_semester_idx').on(table.rollNumber, table.semesterId),
+    index('enrollments_roll_number_idx').on(table.rollNumber),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Relations
 // ---------------------------------------------------------------------------
 
@@ -203,10 +228,12 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     references: [studentProfiles.userId],
   }),
   progress: many(studentProgress),
+  grantedEnrollments: many(enrollments),
 }));
 
 export const semestersRelations = relations(semesters, ({ many }) => ({
   subjects: many(subjects),
+  enrollments: many(enrollments),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -249,5 +276,16 @@ export const studentProgressRelations = relations(studentProgress, ({ one }) => 
   classroom: one(classrooms, {
     fields: [studentProgress.classroomId],
     references: [classrooms.id],
+  }),
+}));
+
+export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
+  semester: one(semesters, {
+    fields: [enrollments.semesterId],
+    references: [semesters.id],
+  }),
+  grantedByUser: one(users, {
+    fields: [enrollments.grantedBy],
+    references: [users.id],
   }),
 }));

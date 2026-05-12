@@ -1,7 +1,7 @@
 /**
  * Auth mode detection — single source of truth.
  *
- * Centralizes Clerk vs ACCESS_CODE detection so middleware,
+ * Centralizes Clerk configuration detection so middleware,
  * layout, and pages all agree on the current auth mode.
  *
  * This module is server-only — it reads CLERK_SECRET_KEY which
@@ -11,7 +11,6 @@
  *  - Both CLERK_SECRET_KEY and NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must be set
  *    for Clerk mode to activate.
  *  - If only one is set, throws at import time to fail fast.
- *  - Otherwise falls back to ACCESS_CODE (or no auth).
  */
 
 import 'server-only';

@@ -10,7 +10,6 @@ import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { I18nProvider } from '@/lib/hooks/use-i18n';
 import { Toaster } from '@/components/ui/sonner';
 import { ServerProvidersInit } from '@/components/server-providers-init';
-import { AccessCodeGuard } from '@/components/access-code-guard';
 import { isClerkEnabled } from '@/lib/server/auth-mode';
 
 const inter = localFont({
@@ -51,8 +50,8 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     return <ClerkProvider>{children}</ClerkProvider>;
   }
 
-  // Fallback: legacy access-code guard for admin instances
-  return <AccessCodeGuard>{children}</AccessCodeGuard>;
+  // Clerk not configured — render without auth wrapper
+  return <>{children}</>;
 }
 
 export default function RootLayout({

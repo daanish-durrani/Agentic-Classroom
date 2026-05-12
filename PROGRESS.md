@@ -4,31 +4,33 @@
 
 ## Current status
 
-- **Active phase**: Phase 0 — Infrastructure foundation (**work complete** — needs amendments before PR: ACCESS_CODE removal, `enrollments` table, `preferred_language` column, `users.role` sme value)
-- **Current sub‑task**: All Phase 0 core steps done. Build passes. AFK protocol finalized. Credentials configured.
-- **Next action**: Execute first slice (DAA-16: Sign up → user row + profile created). Agent should query Linear DAG for current execution order.
-- **Blockers**: none. Clerk + Neon credentials in `.env.local` ✅. Build verified ✅.
+- **Active phase**: Phase 0 — Infrastructure foundation (**all amendments done**, ready for merge)
+- **Current sub-task**: All 4 amendments completed this session: AccessCodeGuard deleted, `enrollments` table added, `preferred_language` column added, `users.role` sme documented. Schema pushed to Neon.
+- **Next action**: Merge `phase-0-infrastructure` PR → then execute first slice (DAA-16).
+- **Blockers**: none.
 - **Last completed slice**: none (first execution pending)
 - **Files modified (cumulative on branch)**:
-  - `middleware.ts` — replaced with Clerk middleware (Session 2)
-  - `app/layout.tsx` — ClerkProvider wrapper, PWA meta tags (Session 2)
+  - `middleware.ts` — Clerk-only middleware; legacy ACCESS_CODE HMAC removed (Session 2, amended Session 4)
+  - `app/layout.tsx` — ClerkProvider wrapper, PWA meta tags; AccessCodeGuard fallback removed (Session 2, amended Session 4)
   - `app/sign-in/[[...sign-in]]/page.tsx` — new Clerk sign-in page (Session 2)
   - `app/sign-up/[[...sign-up]]/page.tsx` — new Clerk sign-up page (Session 2)
-  - `lib/server/db/schema.ts` — full Drizzle schema (Session 2; needs amendments per Session 3)
+  - `lib/server/db/schema.ts` — full Drizzle schema + `enrollments` table, `preferred_language`, sme role comment (Session 2, amended Session 4)
   - `lib/server/db/index.ts` — lazy-init Drizzle client (Session 2)
   - `lib/server/db/users.ts` — auth-agnostic user resolver (Session 2)
+  - `lib/server/auth-mode.ts` — Clerk config detection; ACCESS_CODE references removed (Session 2, amended Session 4)
   - `lib/server/r2.ts` — R2 upload/delete/URL utilities (Session 2)
   - `app/api/webhooks/clerk/route.ts` — webhook with svix signature verification (Session 2)
   - `drizzle.config.ts` — Drizzle Kit config (Session 2)
   - `public/manifest.json` — PWA manifest (Session 2)
   - `railway.json` — Railway deployment config (Session 2)
   - `.env.example` — added Clerk, Neon, R2, Library Mode, Student Defaults sections (Session 2)
-  - `package.json` — added @clerk/nextjs, drizzle-orm, @neondatabase/serverless, drizzle-kit, @aws-sdk/client-s3, svix (Session 2)
-  - `PLAN.md` — §0 locked decisions, §0.6 schema, §0.8 mobile shell, §0.9 roles, Phase 0/3/9 rewrites (Session 2 + 3)
-  - `PROGRESS.md` — session logs (Session 2 + 3)
-  - `AGENTS.md` — project context updated (Session 2 + 3)
-  - `CLAUDE.md` — project context updated (Session 2 + 3)
+  - `package.json` — added @clerk/nextjs, drizzle-orm, @neondatabase/serverless, drizzle-kit, @aws-sdk/client-s3, svix, typecheck script (Session 2 + 3)
+  - `PLAN.md` — §0 locked decisions, §0.6 schema, §0.8 mobile shell, §0.9 roles (Session 2 + 3)
+  - `PROGRESS.md` — session logs (Session 2 + 3 + 4)
+  - `AGENTS.md` — AFK protocol, dynamic DAG, change management, Linear sync rule, incremental saves (Session 2 + 3 + 4)
+  - `CLAUDE.md` — mirrors AGENTS.md (Session 2 + 3 + 4)
   - `.cursor/rules/mobile-app-shell.mdc` — new agent rule (Session 2)
+  - **Deleted (Session 4)**: `components/access-code-guard.tsx`, `components/access-code-modal.tsx`, `app/api/access-code/` (status + verify routes)
 
 ## Session log
 
