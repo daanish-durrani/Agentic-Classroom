@@ -1,0 +1,36 @@
+---
+description: OpenMAIC Library Mode workflow — read WORKFLOW.md, PROGRESS.md, then PLAN.md before changing anything
+alwaysApply: true
+---
+
+# OpenMAIC Library Mode — Cursor Rule
+
+This is a structured human + AI vibe‑coded project. Before making code changes:
+
+1. Read `WORKFLOW.md` at the repo root — the rules of engagement.
+2. Read the **Current status** section at the top of `PROGRESS.md` — tells you the active phase, sub‑task, next action, blockers, and last‑touched files.
+3. Read only the **active phase** in `PLAN.md` (identified by PROGRESS.md).
+4. Skim the listed "Files to touch" before writing code.
+
+## Project shorthand
+
+OpenMAIC is a Next.js 16 multi‑agent classroom app being converted to a **university LMS**. Students sign in via **Clerk**, complete onboarding, and browse a hierarchical catalog (**semester → subject → unit → lesson**) of pre‑generated classrooms with live multi‑agent chat / quizzes / PBL / TTS. Data in **Neon (PostgreSQL)** + **Cloudflare R2** (media). Deployed on **Railway**. Admins use a separate instance (flags off, same Neon + R2) to author classrooms — no file copying.
+
+Two env flags drive the mode:
+- `LIBRARY_ONLY` (server) — middleware blocks generator routes when true.
+- `NEXT_PUBLIC_LIBRARY_ONLY` (client) — bundle hides generation UI when true.
+
+Default student LLM: `google:gemini-3-flash-preview`. UI is mobile‑first.
+
+## Hard rules
+
+- One PR per phase, branch `phase-N-<slug>`. Don't start phase N+1 until N is merged.
+- Don't drift outside the active phase's "Files to touch" without flagging it.
+- Don't silently override "Out of scope" items in `PLAN.md`. Surface or log.
+- No drive‑by refactors. Note unrelated issues under "Tech debt observed" in `PROGRESS.md` session log.
+- Don't commit `.env.local`, `node_modules`, or `data/classrooms/`.
+- **End every session** by updating the "Current status" section at the top of `PROGRESS.md` and appending a new "Session log" entry. See `WORKFLOW.md` for required fields.
+
+## When in doubt
+
+Ask the human. The vibe coder unblocks; the AI does not fabricate. Use `@WORKFLOW.md` `@PROGRESS.md` `@PLAN.md` `@ARCHITECTURE.md` in the chat to attach those files as context if Cursor hasn't already.
