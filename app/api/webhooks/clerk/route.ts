@@ -30,7 +30,16 @@ interface ClerkWebhookEvent {
   data: ClerkUserEventData;
 }
 
-/** Extract the primary email from Clerk user data */
+/**
+ * Determine the user's primary email address from Clerk user event data.
+ *
+ * Returns `null` if `email_addresses` is missing or empty. If `primary_email_address_id`
+ * is present, returns the matching `email_address` when found; otherwise returns the
+ * `email_address` of the first entry in `email_addresses`.
+ *
+ * @param data - Clerk user event payload containing `email_addresses` and optional `primary_email_address_id`
+ * @returns The primary email address, or `null` if none is available
+ */
 function getPrimaryEmail(data: ClerkUserEventData): string | null {
   if (!data.email_addresses?.length) return null;
 
@@ -46,6 +55,13 @@ function getPrimaryEmail(data: ClerkUserEventData): string | null {
   return data.email_addresses[0].email_address;
 }
 
+/**
+ * Handle incoming Clerk webhook POSTs: verify Svix signature, process user events, and sync created/updated users to the internal users table.
+ *
+ * Processes `user.created` and `user.updated` by extracting the primary email, computing a display name, and calling the internal upsert routine; logs `user.deleted` events without performing hard deletes. Returns error responses for missing configuration, missing/invalid Svix headers, signature verification failures, or failures during user sync (which yield HTTP 500 to allow Clerk retries).
+ *
+ * @returns A NextResponse with a JSON payload indicating success (`{ received: true }`) or an error object (`{ error: string }`) and an appropriate HTTP status code.
+ */
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 

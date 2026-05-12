@@ -39,11 +39,13 @@ export const viewport: Viewport = {
 };
 
 /**
- * Wrap children in ClerkProvider only when Clerk is fully configured.
+ * Conditionally wraps the provided children with ClerkProvider when Clerk is enabled.
  *
- * Note: ClerkProvider from @clerk/nextjs is designed for use in Server
- * Components (RSC). It is NOT a client component that needs 'use client'.
- * See: https://clerk.com/docs/references/nextjs/clerk-provider
+ * If Clerk is not configured, returns the children unchanged. ClerkProvider is intended
+ * for use in Next.js Server Components.
+ *
+ * @param children - The React nodes to render inside the optional auth wrapper
+ * @returns The rendered children, wrapped with `ClerkProvider` when Clerk is enabled
  */
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   if (isClerkEnabled) {
@@ -54,6 +56,12 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Renders the application's top-level HTML and body structure, including global providers and UI helpers.
+ *
+ * @param children - The application content to render inside the layout
+ * @returns The root HTML element for the Next.js app containing theme, i18n, server providers, optional auth wrapper, and a toaster
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

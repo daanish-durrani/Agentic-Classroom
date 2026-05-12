@@ -17,8 +17,12 @@ import * as schema from './schema';
 let _db: NeonHttpDatabase<typeof schema> | null = null;
 
 /**
- * Get the Drizzle database instance. Lazy-initializes on first call.
- * Throws if DATABASE_URL is not set (runtime only, never at build time).
+ * Retrieves the cached Drizzle ORM database instance for Neon, initializing it on first call.
+ *
+ * Initializes and caches a Neon HTTP client wrapped by Drizzle on first invocation. Throws an error if the `DATABASE_URL` environment variable is not set.
+ *
+ * @returns The initialized Neon HTTP Drizzle database instance for the local schema.
+ * @throws Error if `DATABASE_URL` is not set in the environment.
  */
 export function getDb(): NeonHttpDatabase<typeof schema> {
   if (!_db) {

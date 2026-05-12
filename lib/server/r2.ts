@@ -18,6 +18,12 @@ import {
 
 let _client: S3Client | null = null;
 
+/**
+ * Obtain a memoized S3Client configured for Cloudflare R2 using environment credentials.
+ *
+ * @returns The configured S3Client instance.
+ * @throws Error if `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, or `R2_SECRET_ACCESS_KEY` is not set.
+ */
 function getR2Client(): S3Client {
   if (_client) return _client;
 
@@ -43,6 +49,12 @@ function getR2Client(): S3Client {
   return _client;
 }
 
+/**
+ * Retrieve the configured Cloudflare R2 bucket name from the environment.
+ *
+ * @returns The value of `R2_BUCKET_NAME`.
+ * @throws Error if `R2_BUCKET_NAME` is not set.
+ */
 function getBucket(): string {
   const bucket = process.env.R2_BUCKET_NAME;
   if (!bucket) {
@@ -56,8 +68,11 @@ function getBucket(): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Get the public URL for an R2 object.
- * Uses R2_PUBLIC_URL for direct serving (no proxy through Next.js).
+ * Constructs the public URL for an object stored in the configured R2 bucket.
+ *
+ * @param key - The object key or path within the bucket (may include subpaths)
+ * @returns The full public URL for the specified object
+ * @throws Error if `R2_PUBLIC_URL` is not configured in the environment
  */
 export function getR2Url(key: string): string {
   const publicUrl = process.env.R2_PUBLIC_URL;
@@ -105,8 +120,9 @@ export async function uploadToR2(
 // ---------------------------------------------------------------------------
 
 /**
- * Delete a file from R2.
- * @param key - Object key (path) in the bucket
+ * Deletes the object at the given key from the configured R2 bucket.
+ *
+ * @param key - The object's key (path) within the bucket
  */
 export async function deleteFromR2(key: string): Promise<void> {
   const client = getR2Client();

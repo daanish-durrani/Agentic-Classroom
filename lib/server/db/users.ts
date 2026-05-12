@@ -13,8 +13,11 @@ import { users } from './schema';
 export type InternalUser = typeof users.$inferSelect;
 
 /**
- * Resolve an auth provider's user ID to the internal users.id.
- * Returns null if the user doesn't exist yet.
+ * Looks up an internal user record matching the given authentication provider and provider-specific user ID.
+ *
+ * @param provider - The external auth provider identifier (e.g., "google", "github")
+ * @param providerUserId - The user ID assigned by the external provider
+ * @returns The matching `InternalUser` if found, `null` otherwise
  */
 export async function resolveUserByAuthId(
   provider: string,
@@ -31,9 +34,13 @@ export async function resolveUserByAuthId(
 }
 
 /**
- * Upsert a user from webhook data.
- * Atomic: uses ON CONFLICT DO UPDATE to prevent race conditions
- * when Clerk retries webhooks concurrently.
+ * Insert or update an internal user record from external auth-provider webhook data.
+ *
+ * Performs an atomic upsert keyed by `authProvider` and `authProviderId` so concurrent webhook retries
+ * resolve to a single user record.
+ *
+ * @param data - Webhook-provided user data. `authProvider` and `authProviderId` are required identifiers for the external identity. `email`, `displayName`, and `avatarUrl` are optional profile fields to set or update.
+ * @returns The resulting user row (inserted or updated) from the `users` table.
  */
 export async function getOrCreateUser(data: {
   authProvider: string;
