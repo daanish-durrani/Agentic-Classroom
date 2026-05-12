@@ -1,4 +1,10 @@
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { isClerkEnabled } from '@/lib/server/auth-mode';
+
+// ---------------------------------------------------------------------------
+// Legacy access-code middleware (admin instance without Clerk)
+// ---------------------------------------------------------------------------
 
 /** Convert string to Uint8Array */
 function encode(str: string): Uint8Array {
@@ -41,7 +47,25 @@ async function verifyToken(token: string, accessCode: string): Promise<boolean> 
   return mismatch === 0;
 }
 
-export async function middleware(request: NextRequest) {
+// ---------------------------------------------------------------------------
+// Route matchers
+// ---------------------------------------------------------------------------
+
+/** Routes that are always public (no auth required) */
+const isPublicRoute = createRouteMatcher([
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/health',
+  '/api/webhooks/clerk(.*)',
+  '/api/access-code(.*)',
+  '/manifest.json',
+]);
+
+// ---------------------------------------------------------------------------
+// Middleware selection: Clerk (student/library) vs ACCESS_CODE (admin legacy)
+// ---------------------------------------------------------------------------
+
+async function accessCodeMiddleware(request: NextRequest): Promise<NextResponse> {
   const accessCode = process.env.ACCESS_CODE;
   if (!accessCode) {
     return NextResponse.next();
@@ -49,8 +73,12 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Whitelist: access-code endpoints, health check
-  if (pathname.startsWith('/api/access-code/') || pathname === '/api/health') {
+  // Whitelist: access-code endpoints, health check, manifest
+  if (
+    pathname.startsWith('/api/access-code/') ||
+    pathname === '/api/health' ||
+    pathname === '/manifest.json'
+  ) {
     return NextResponse.next();
   }
 
@@ -72,6 +100,21 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
+// When Clerk is configured, use clerkMiddleware with public route matching.
+// Otherwise fall back to the legacy ACCESS_CODE HMAC system.
+export default isClerkEnabled
+  ? clerkMiddleware(async (auth, req) => {
+      if (!isPublicRoute(req)) {
+        await auth.protect();
+      }
+    })
+  : accessCodeMiddleware;
+
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|logos/).*)'],
+  matcher: [
+    // Skip Next.js internals and all static files
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
 };

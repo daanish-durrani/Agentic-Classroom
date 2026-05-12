@@ -1,0 +1,73 @@
+---
+description: Student UI must feel like a native mobile app — fixed-width phone frame, not responsive web. Read this before touching any student-facing component.
+alwaysApply: true
+---
+
+# Mobile App Shell — Student UI Design Contract
+
+The student-facing UI is a **native mobile app shell rendered in a web page**, installable as a **PWA**. It is NOT a responsive website. Every component must look and behave like a native mobile app.
+
+## Layout rules
+
+- **Target viewport**: 360px wide. Max container width: `max-w-[420px]`.
+- **Desktop behaviour**: centered phone-frame column on a dark/blurred background. No sidebars, no multi-column, no wider breakpoints.
+- **Full-height screens**: `min-h-[100dvh]` using dynamic viewport height. Content scrolls within the frame.
+- **Safe areas**: respect `env(safe-area-inset-*)` for notch/punch-hole devices.
+
+## Navigation patterns (mobile-native, not web)
+
+- **Top app bar**: 56px height, title + optional right-side action icons. No hamburger menus.
+- **Bottom tab bar**: 64px height, fixed to bottom. Primary sections (Library / Progress / Profile). Active tab uses filled icon + label.
+- **Screen transitions**: horizontal slide for forward/back navigation. Fade for tab switches.
+- **No browser-style navigation**. No breadcrumbs, no top nav links. Back arrow in the app bar or swipe-back gesture.
+
+## Interaction patterns
+
+- **Tap targets**: minimum 44×44px for all interactive elements. Prefer 48×48px.
+- **Cards**: rounded corners (12–16px), subtle shadows, used for list items and content blocks.
+- **Bottom sheets**: for secondary actions, filters, details. Snappable to half/full height. Drag handle at top.
+- **Full-screen modals**: for focused flows (onboarding steps, quiz review, settings). Slide up from bottom.
+- **No web-style dialogs**, dropdowns, or hover tooltips. Use sheets, action menus, and inline expansion.
+- **Pull-to-refresh**: for catalog and progress screens.
+
+## Touch & gesture behaviour
+
+```css
+/* Apply to the app shell root */
+-webkit-tap-highlight-color: transparent;
+touch-action: manipulation;    /* disable double-tap zoom */
+overscroll-behavior: none;     /* prevent browser pull-to-refresh bounce;
+                                  pull-to-refresh on catalog/progress screens
+                                  is a CUSTOM JS implementation (touch events),
+                                  not the native browser gesture */
+user-select: none;             /* on interactive elements, not text content */
+-webkit-user-select: none;
+```
+
+## Typography & spacing
+
+- System font stack: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`.
+- Base font size: 16px (prevents iOS zoom on input focus).
+- Spacing: 8px grid (8, 12, 16, 24, 32, 48).
+- Line height: 1.4–1.5 for body, 1.2 for headings.
+
+## PWA requirements
+
+- `public/manifest.json` with `"display": "standalone"`, `"orientation": "portrait"`.
+- `<meta name="theme-color">` matching the app bar background.
+- `<meta name="apple-mobile-web-app-capable" content="yes">`.
+- `<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">`.
+- App icons (192×192, 512×512) and splash screens.
+
+## What NOT to do
+
+- ❌ No `@media (min-width: 768px)` or wider breakpoints for layout changes.
+- ❌ No sidebars, multi-column grids, or wide desktop layouts.
+- ❌ No hover-only interactions (hover states are fine as enhancement, never as the only way).
+- ❌ No browser-style `<select>` or `<dialog>`. Use custom mobile pickers and sheets.
+- ❌ No horizontal scroll containers wider than 420px.
+- ❌ No tiny (< 44px) tap targets.
+
+## Reference
+
+Full spec: `PLAN.md` §0.8. Design system components created in Phase 4.
