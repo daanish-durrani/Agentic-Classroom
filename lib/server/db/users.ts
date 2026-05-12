@@ -8,7 +8,7 @@
 
 import { eq, and } from 'drizzle-orm';
 import { getDb } from './index';
-import { users } from './schema';
+import { users, studentProfiles } from './schema';
 
 export type InternalUser = typeof users.$inferSelect;
 
@@ -31,9 +31,14 @@ export async function resolveUserByAuthId(
 }
 
 /**
- * Upsert a user from webhook data.
+ * Upsert a user from webhook data, and ensure a student_profiles row exists.
+ *
  * Atomic: uses ON CONFLICT DO UPDATE to prevent race conditions
  * when Clerk retries webhooks concurrently.
+ *
+ * Profile creation uses ON CONFLICT DO NOTHING so it's idempotent —
+ * calling this multiple times for the same user never duplicates the profile.
+ * Every user starts as role='student', so all users get a profile row.
  */
 export async function getOrCreateUser(data: {
   authProvider: string;
@@ -44,24 +49,35 @@ export async function getOrCreateUser(data: {
 }): Promise<InternalUser> {
   const db = getDb();
 
-  const [result] = await db
-    .insert(users)
-    .values({
-      authProvider: data.authProvider,
-      authProviderId: data.authProviderId,
-      email: data.email,
-      displayName: data.displayName,
-      avatarUrl: data.avatarUrl,
-    })
-    .onConflictDoUpdate({
-      target: [users.authProvider, users.authProviderId],
-      set: {
+  // Atomic: both inserts share a transaction so a profile-insert failure
+  // rolls back the user row, preventing orphaned records.
+  return await db.transaction(async (tx) => {
+    const [result] = await tx
+      .insert(users)
+      .values({
+        authProvider: data.authProvider,
+        authProviderId: data.authProviderId,
         email: data.email,
         displayName: data.displayName,
         avatarUrl: data.avatarUrl,
-      },
-    })
-    .returning();
+      })
+      .onConflictDoUpdate({
+        target: [users.authProvider, users.authProviderId],
+        set: {
+          email: data.email,
+          displayName: data.displayName,
+          avatarUrl: data.avatarUrl,
+        },
+      })
+      .returning();
 
-  return result;
+    // Ensure a student_profiles row exists for this user.
+    // ON CONFLICT DO NOTHING: safe for webhook retries and concurrent calls.
+    await tx
+      .insert(studentProfiles)
+      .values({ userId: result.id })
+      .onConflictDoNothing({ target: studentProfiles.userId });
+
+    return result;
+  });
 }

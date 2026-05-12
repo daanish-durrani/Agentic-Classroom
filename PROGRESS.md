@@ -4,11 +4,12 @@
 
 ## Current status
 
-- **Active phase**: Phase 0 — Infrastructure foundation (**MERGED** ✅, DAA-5 → Done)
-- **Current sub-task**: Phase 0 complete. Ready for first slice execution.
-- **Next action**: Start next session → query Linear DAG → pick first unblocked slice (likely DAA-16).
-- **Blockers**: none.
-- **Last completed slice**: none (first execution pending)
+- **Active phase**: Slice execution (Phase 0 merged ✅, DAA-5 → Done)
+- **Current sub-task**: DAA-16 "Sign up → user row + profile created" — **complete**, moved to Needs QA.
+- **Next action**: Start next session → query Linear DAG → pick next unblocked slice (DAA-29 "Remove ACCESS_CODE gate entirely" — blocked by DAA-16, so blocked until DAA-16 is Done).
+- **Blockers**: DAA-16 needs QA approval before dependent slices can start.
+- **Last completed slice**: DAA-16 (Needs QA)
+- **Branch**: `daanish/daa-16-sign-up-user-row-profile-created`
 - **Files modified (cumulative, merged to main)**:
   - `middleware.ts` — Clerk-only middleware; legacy ACCESS_CODE HMAC removed (Session 2, amended Session 4)
   - `app/layout.tsx` — ClerkProvider wrapper, PWA meta tags; AccessCodeGuard fallback removed (Session 2, amended Session 4)
@@ -31,8 +32,46 @@
   - `CLAUDE.md` — mirrors AGENTS.md (Session 2 + 3 + 4)
   - `.cursor/rules/mobile-app-shell.mdc` — new agent rule (Session 2)
   - **Deleted (Session 4)**: `components/access-code-guard.tsx`, `components/access-code-modal.tsx`, `app/api/access-code/` (status + verify routes)
+  - `lib/server/db/users.ts` — added student_profiles creation on getOrCreateUser (Session 5)
+  - `tests/server/users.test.ts` — [NEW] 8 tests for getOrCreateUser + resolveUserByAuthId (Session 5)
+  - `tests/server/clerk-webhook.test.ts` — [NEW] 8 tests for Clerk webhook handler (Session 5)
+  - `AGENTS.md` — added never-commit rule (Session 5)
+  - `WORKFLOW.md` — added never-commit rule to commit hygiene (Session 5)
+  - `CLAUDE.md` — added never-commit rule (Session 5)
 
 ## Session log
+
+### 2026-05-13 — Session 5 (DAA-16: sign-up creates user + profile)
+
+**Phase**: Slice execution — DAA-16
+
+**What was completed**:
+
+1. **Fixed `getOrCreateUser()`**: Now inserts a `student_profiles` row (ON CONFLICT DO NOTHING) after upserting the `users` row. Every sign-up creates both records. Idempotent for webhook retries.
+2. **16 new vitest tests** across two files:
+   - `users.test.ts` (8 tests): user creation returns student role, two DB inserts (users + profiles), correct values, idempotent profile via DO NOTHING, user upsert via DO UPDATE, resolveUserByAuthId found/not-found.
+   - `clerk-webhook.test.ts` (8 tests): missing secret → 500, missing svix headers → 400, invalid signature → 400, valid user.created → 200 + correct getOrCreateUser call, valid user.updated → 200, user.deleted → no DB call, DB error → 500 for retry, multi-email primary extraction.
+3. **All tests mocked** — no real Neon connection needed. DB layer mocked via vi.mock.
+4. **Linear updated**: DAA-16 → Needs QA, completion comment with QA checklist posted.
+5. **Post-review fixes** (same session):
+   - Wrapped user + profile inserts in `db.transaction()` for atomicity (prevents orphaned user rows).
+   - Replaced duplicated schema definitions in tests with `vi.importActual()` passthrough to eliminate schema drift.
+   - Added `transaction()` mock to test's `buildMockDb()`.
+   - Added "never run git add/commit/push" rule to `AGENTS.md`, `WORKFLOW.md`, and `CLAUDE.md`.
+
+**What was deferred and why**:
+- Manual QA (sign up via Clerk, check Neon) — requires reviewer to verify with real credentials.
+- No PR opened yet — waiting for QA pass before merge.
+
+**Decisions made (with rationale)**:
+- **Always create student_profiles for all users**: Everyone starts as `role='student'`. Admin/SME users get promoted later. Single Clerk app means the webhook fires for all sign-ups.
+- **ON CONFLICT DO NOTHING for profiles**: Prevents duplicate rows when Clerk retries or concurrent webhook deliveries happen. Simpler than checking existence first.
+- **Atomic transaction**: Both inserts now share a `db.transaction()` so a profile-insert failure rolls back the user row.
+- **Never-commit rule**: Agents must never run git add/commit/push. Human reviews and commits manually.
+
+**Test/lint/build status at session end**: `typecheck ✅`, `tests ✅` (333 total, 16 new), `build ✅`
+
+**Tech debt observed**: Line ending warnings (LF vs CRLF) on Windows — cosmetic only.
 
 ### 2026-05-12 — Session 4 (Phase 0 amendments + workflow hardening)
 
