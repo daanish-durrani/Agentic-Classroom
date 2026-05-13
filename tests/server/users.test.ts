@@ -65,11 +65,6 @@ function buildMockDb() {
         })),
       })),
     })),
-
-    // db.transaction(cb) — call cb with the same mock as the tx handle
-    transaction: vi.fn().mockImplementation(async (cb: (tx: typeof mockDb) => Promise<unknown>) => {
-      return cb(mockDb);
-    }),
   };
 
   return mockDb;

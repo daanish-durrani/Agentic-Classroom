@@ -4,11 +4,11 @@
 
 ## Current status
 
-- **Active phase**: Slice execution (Phase 0 merged ✅, DAA-5 → Done)
-- **Current sub-task**: DAA-16 "Sign up → user row + profile created" — **complete**, moved to Needs QA.
-- **Next action**: Start next session → query Linear DAG → pick next unblocked slice (DAA-29 "Remove ACCESS_CODE gate entirely" — blocked by DAA-16, so blocked until DAA-16 is Done).
-- **Blockers**: DAA-16 needs QA approval before dependent slices can start.
-- **Last completed slice**: DAA-16 (Needs QA)
+- **Active phase**: Slice execution (Phase 0 merged ✅, DAA-5 → Done, DAA-16 → Done)
+- **Current sub-task**: DAA-16 "Sign up → user row + profile created" — **Done** ✅. QA verified, CodeRabbit review fixes applied.
+- **Next action**: Start next session → query Linear DAG → pick next unblocked slice (DAA-29 "Remove ACCESS_CODE gate entirely" — now unblocked).
+- **Blockers**: None.
+- **Last completed slice**: DAA-16 (Done)
 - **Branch**: `daanish/daa-16-sign-up-user-row-profile-created`
 - **Files modified (cumulative, merged to main)**:
   - `middleware.ts` — Clerk-only middleware; legacy ACCESS_CODE HMAC removed (Session 2, amended Session 4)
@@ -17,29 +17,73 @@
   - `app/sign-up/[[...sign-up]]/page.tsx` — new Clerk sign-up page (Session 2)
   - `lib/server/db/schema.ts` — full Drizzle schema + `enrollments` table, `preferred_language`, sme role comment (Session 2, amended Session 4)
   - `lib/server/db/index.ts` — lazy-init Drizzle client (Session 2)
-  - `lib/server/db/users.ts` — auth-agnostic user resolver (Session 2)
+  - `lib/server/db/users.ts` — auth-agnostic user resolver; added student_profiles on getOrCreateUser (Session 2, amended Session 5); removed `db.transaction()` (neon-http incompatible), sequential idempotent inserts (Session 6)
   - `lib/server/auth-mode.ts` — Clerk config detection; ACCESS_CODE references removed (Session 2, amended Session 4)
   - `lib/server/r2.ts` — R2 upload/delete/URL utilities (Session 2)
+  - `lib/server/auth.ts` — [NEW] `ensureDbUser()` server helper for sync-on-first-request (Session 6)
   - `app/api/webhooks/clerk/route.ts` — webhook with svix signature verification (Session 2)
+  - `app/api/me/route.ts` — [NEW] GET endpoint calling `ensureDbUser()`, sanitized error logging (Session 6)
+  - `lib/hooks/use-sync-user.ts` — [NEW] `useSyncUser()` client hook, tracks userId, AbortController cleanup, SYNCING sentinel (Session 6)
+  - `app/page.tsx` — added `useSyncUser()` call on authenticated render (Session 6)
   - `drizzle.config.ts` — Drizzle Kit config (Session 2)
   - `public/manifest.json` — PWA manifest (Session 2)
   - `railway.json` — Railway deployment config (Session 2)
   - `.env.example` — added Clerk, Neon, R2, Library Mode, Student Defaults sections (Session 2)
   - `package.json` — added @clerk/nextjs, drizzle-orm, @neondatabase/serverless, drizzle-kit, @aws-sdk/client-s3, svix, typecheck script (Session 2 + 3)
   - `PLAN.md` — §0 locked decisions, §0.6 schema, §0.8 mobile shell, §0.9 roles (Session 2 + 3)
-  - `PROGRESS.md` — session logs (Session 2 + 3 + 4)
-  - `AGENTS.md` — AFK protocol, dynamic DAG, change management, Linear sync rule, incremental saves, QA checklist rule (Session 2 + 3 + 4)
-  - `CLAUDE.md` — mirrors AGENTS.md (Session 2 + 3 + 4)
+  - `PROGRESS.md` — session logs (Session 2 + 3 + 4 + 5 + 6)
+  - `AGENTS.md` — AFK protocol, dynamic DAG, change management, Linear sync rule, incremental saves, QA checklist rule, never-commit rule (Session 2 + 3 + 4 + 5)
+  - `CLAUDE.md` — mirrors AGENTS.md (Session 2 + 3 + 4 + 5)
   - `.cursor/rules/mobile-app-shell.mdc` — new agent rule (Session 2)
   - **Deleted (Session 4)**: `components/access-code-guard.tsx`, `components/access-code-modal.tsx`, `app/api/access-code/` (status + verify routes)
-  - `lib/server/db/users.ts` — added student_profiles creation on getOrCreateUser (Session 5)
-  - `tests/server/users.test.ts` — [NEW] 8 tests for getOrCreateUser + resolveUserByAuthId (Session 5)
+  - `tests/server/users.test.ts` — [NEW] 8 tests for getOrCreateUser + resolveUserByAuthId; removed `transaction()` mock (Session 5, amended Session 6)
   - `tests/server/clerk-webhook.test.ts` — [NEW] 8 tests for Clerk webhook handler (Session 5)
-  - `AGENTS.md` — added never-commit rule (Session 5)
-  - `WORKFLOW.md` — added never-commit rule to commit hygiene (Session 5)
-  - `CLAUDE.md` — added never-commit rule (Session 5)
 
 ## Session log
+
+### 2026-05-13 — Session 6 (DAA-16: local QA, sync-on-first-request, CodeRabbit review)
+
+**Phase**: Slice execution — DAA-16
+
+**What was completed**:
+
+1. **Sync-on-first-request pattern**: Clerk webhooks can't reach `localhost` in local dev, so new users weren't appearing in Neon. Added three files to solve:
+   - `lib/server/auth.ts` — `ensureDbUser()` reads current Clerk session via `currentUser()` and calls `getOrCreateUser()`.
+   - `app/api/me/route.ts` — `GET /api/me` endpoint that triggers the sync. Idempotent.
+   - `lib/hooks/use-sync-user.ts` — client hook fired on first authenticated render to call `/api/me`.
+   - `app/page.tsx` — wired `useSyncUser()` into HomePage.
+2. **Fixed neon-http transaction crash**: `getOrCreateUser()` used `db.transaction()` but the Neon HTTP driver doesn't support it. Removed the wrapper — both inserts in `getOrCreateUser()` are retry-safe: the `users` upsert uses ON CONFLICT DO UPDATE (safe for retries but updates `display_name`/`email` on conflict), while the `student_profiles` insert uses ON CONFLICT DO NOTHING (true no-op if the row already exists). Sequential execution without a transaction is safe because any partial failure self-heals on the next call. Updated test mocks to match.
+3. **QA verified**: Signed up via Clerk → refreshed → both `users` and `student_profiles` rows confirmed in Neon. DAA-16 moved to **Done**.
+4. **CodeRabbit review triage — round 1** (10 findings):
+   - ✅ **Fixed 3**: PII-safe error logging in `/api/me`, race condition in `useSyncUser` (mark synced only after success), track `userId` instead of boolean (re-syncs on account switch).
+   - ⏭️ **Skipped 7**: All pre-existing `page.tsx` code (theme toggle, grid breakpoints, hero width, settings tap target, delete/rename hover-only, top-level container). Not DAA-16 scope — logged as tech debt below.
+   - ⏭️ **Skipped 1**: Transaction compensation in `users.ts` — over-engineering given both ops are retry-safe and self-healing.
+5. **CodeRabbit review triage — round 2** (3 findings, all fixed):
+   - ✅ **AbortController cleanup**: `useSyncUser` now creates an `AbortController`, passes `signal` to `fetch()`, and aborts on effect cleanup. Post-fetch ref mutations guarded against aborted signal.
+   - ✅ **SYNCING sentinel**: Set `syncedUserId.current = SYNCING` optimistically before fetch to prevent duplicate in-flight requests. Reverts to `null` on failure/abort so retries work.
+   - ✅ **Conflict semantics in PROGRESS.md**: Clarified that ON CONFLICT DO UPDATE (users) is retry-safe but mutates `display_name`/`email`, while ON CONFLICT DO NOTHING (student_profiles) is a true no-op. No longer calls both "idempotent".
+
+**What was deferred and why**:
+- Mobile app shell hardening for `page.tsx` (7 CodeRabbit findings) — belongs in a dedicated mobile-shell slice, not DAA-16. See tech debt below.
+
+**Decisions made (with rationale)**:
+- **No transaction wrapper**: Neon HTTP driver genuinely doesn't support `db.transaction()`. Both inserts use ON CONFLICT, so partial failure self-heals on the next `/api/me` call. Compensation logic (retry/delete) is over-engineering for this idempotent pattern.
+- **Sync-on-first-request as primary path**: Webhooks are unreliable (local dev, network issues, delayed delivery). `/api/me` is the guaranteed path. Both are idempotent and safe to run concurrently.
+- **userId tracking in useSyncUser**: Prevents stale state when user signs out → signs in with different account in the same browser session.
+
+**Test/lint/build status at session end**: `typecheck ✅`, `tests ✅` (333 total), `build ✅`
+
+**Tech debt observed**:
+- **Mobile app shell hardening (page.tsx)** — 7 findings from CodeRabbit review, all pre-existing:
+  1. Top-level container uses full-width responsive layout instead of fixed 420px phone frame
+  2. Hero container `max-w-[800px]` exceeds phone frame
+  3. Recent Classrooms container `max-w-6xl` exceeds phone frame
+  4. Grid uses `md:grid-cols-3 lg:grid-cols-4` responsive breakpoints (should be mobile-only)
+  5. Theme toggle uses web-style dropdown instead of mobile bottom sheet
+  6. Settings button tap target too small (`p-2`, should be 44×48px minimum)
+  7. Delete/rename buttons are hover-only (`opacity-0 group-hover:opacity-100`), not discoverable on touch
+  - **Recommendation**: Create a new Linear slice for mobile-shell hardening covering all 7 items.
+- Line ending warnings (LF vs CRLF) on Windows — cosmetic only.
 
 ### 2026-05-13 — Session 5 (DAA-16: sign-up creates user + profile)
 
@@ -54,19 +98,17 @@
 3. **All tests mocked** — no real Neon connection needed. DB layer mocked via vi.mock.
 4. **Linear updated**: DAA-16 → Needs QA, completion comment with QA checklist posted.
 5. **Post-review fixes** (same session):
-   - Wrapped user + profile inserts in `db.transaction()` for atomicity (prevents orphaned user rows).
+   - Wrapped user + profile inserts in `db.transaction()` for atomicity (later reverted in Session 6 — neon-http doesn't support it).
    - Replaced duplicated schema definitions in tests with `vi.importActual()` passthrough to eliminate schema drift.
-   - Added `transaction()` mock to test's `buildMockDb()`.
+   - Added `transaction()` mock to test's `buildMockDb()` (later removed in Session 6).
    - Added "never run git add/commit/push" rule to `AGENTS.md`, `WORKFLOW.md`, and `CLAUDE.md`.
 
 **What was deferred and why**:
-- Manual QA (sign up via Clerk, check Neon) — requires reviewer to verify with real credentials.
-- No PR opened yet — waiting for QA pass before merge.
+- Manual QA (sign up via Clerk, check Neon) — done in Session 6.
 
 **Decisions made (with rationale)**:
 - **Always create student_profiles for all users**: Everyone starts as `role='student'`. Admin/SME users get promoted later. Single Clerk app means the webhook fires for all sign-ups.
 - **ON CONFLICT DO NOTHING for profiles**: Prevents duplicate rows when Clerk retries or concurrent webhook deliveries happen. Simpler than checking existence first.
-- **Atomic transaction**: Both inserts now share a `db.transaction()` so a profile-insert failure rolls back the user row.
 - **Never-commit rule**: Agents must never run git add/commit/push. Human reviews and commits manually.
 
 **Test/lint/build status at session end**: `typecheck ✅`, `tests ✅` (333 total, 16 new), `build ✅`
