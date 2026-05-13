@@ -56,6 +56,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
 import { useImportClassroom } from '@/lib/import/use-import-classroom';
+import { useSyncUser } from '@/lib/hooks/use-sync-user';
 
 const log = createLogger('Home');
 
@@ -80,6 +81,9 @@ const initialFormState: FormState = {
 function HomePage() {
   const { t } = useI18n();
   const { theme, setTheme } = useTheme();
+
+  // Sync Clerk user → Neon DB on first authenticated render
+  useSyncUser();
   const router = useRouter();
   const [form, setForm] = useState<FormState>(initialFormState);
   const [settingsOpen, setSettingsOpen] = useState(false);
